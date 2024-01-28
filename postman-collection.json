@@ -1,0 +1,100 @@
+{
+  "info": {
+    "name": "Laravel API Collection",
+    "description": "A collection of API endpoints for a Laravel project",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Add Product to Cart",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"product_id\": 1}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/addProductInCart",
+          "host": "{{base_url}}",
+          "path": ["api", "addProductInCart"]
+        },
+        "description": "Adds a product to the user's cart. Requires product_id."
+      },
+      "response": []
+    },
+    {
+      "name": "Remove Product from Cart",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"product_id\": 1}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/removeProductFromCart",
+          "host": "{{base_url}}",
+          "path": ["api", "removeProductFromCart"]
+        },
+        "description": "Removes a product from the user's cart. Requires product_id."
+      },
+      "response": []
+    },
+    {
+      "name": "Set Cart Product Quantity",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"product_id\": 1, \"quantity\": 3}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/setCartProductQuantity",
+          "host": "{{base_url}}",
+          "path": ["api", "setCartProductQuantity"]
+        },
+        "description": "Sets the quantity of a specific product in the user's cart."
+      },
+      "response": []
+    },
+    {
+      "name": "Get User Cart",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/getUserCart",
+          "host": "{{base_url}}",
+          "path": ["api", "getUserCart"]
+        },
+        "description": "Retrieves the current user's cart details."
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "id": "base_url",
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    }
+  ]
+}
