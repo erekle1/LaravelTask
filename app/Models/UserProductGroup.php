@@ -20,7 +20,7 @@ class UserProductGroup extends Model
 
     public function productGroupItems(): HasMany
     {
-        return $this->hasMany(ProductGroupItem::class);
+        return $this->hasMany(ProductGroupItem::class,'group_id','id');
     }
 }
 

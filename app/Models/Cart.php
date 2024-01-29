@@ -25,4 +25,41 @@ class Cart extends Model
     {
         return $this->belongsTo(Product::class);
     }
+
+    public function calculateDiscount()
+    {
+        $discount = 0;
+
+        // Group cart items by product
+        $groupedItems = $this->groupBy('product_id')
+            ->with('product.productGroupItems.group')
+            ->get();
+
+        foreach ($groupedItems as $group) {
+            $groupCount = $group->count();
+            foreach ($group as $item) {
+                $productGroups = $item->product->productGroupItems;
+                foreach ($productGroups as $productGroup) {
+                    if ($productGroup->group->user_id === $this->user_id) {
+                        $discount += min($groupCount, $productGroup->group->discount);
+                        break;
+                    }
+                }
+            }
+        }
+
+        return $discount;
+    }
+
+
+    public function productGroupItems()
+    {
+        return $this->hasManyThrough(
+            ProductGroupItem::class,
+            UserProductGroup::class,
+            'user_id',
+            'group_id'
+        );
+    }
+
 }

@@ -19,8 +19,9 @@ class StaticUserAuthMiddleware
     public function handle(Request $request, Closure $next): Response
     {
 
-
-        $this->setStaticUser();
+        if (!Auth::check()) {
+            $this->setStaticUser();
+        }
 
         return $next($request);
     }
@@ -31,8 +32,7 @@ class StaticUserAuthMiddleware
         $userId = Cache::get('static_user_id');
 
 
-
-        if (!$userId) {
+        if (empty($userId)) {
             // If not, fetch a random user and store their ID in the cache
             $user = User::inRandomOrder()->firstOrFail();
             Cache::forever('static_user_id', $user->id);

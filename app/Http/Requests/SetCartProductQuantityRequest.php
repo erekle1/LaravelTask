@@ -23,7 +23,6 @@ class SetCartProductQuantityRequest extends ApiRequest
      */
     public function rules(): array
     {
-        dd(auth()->user()->carts);
         return [
             'product_id' => [
                 'required',

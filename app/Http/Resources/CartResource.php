@@ -2,82 +2,106 @@
 
 namespace App\Http\Resources;
 
-use App\Models\UserProductGroup;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Http;
 
 class CartResource extends JsonResource
 {
     /**
      * Transform the resource into an array.
      *
-     * @return array<string, mixed>
+     * @param \Illuminate\Http\Request $request
+     * @return array
      */
-    public function toArray($request): array
+    public function toArray($request)
     {
-        // Fetch product groups and items for the user in one query
-        $userGroups = UserProductGroup::with('productGroupItems.product')
-            ->where('user_id', $this->user_id)
-            ->get();
 
-        $products = $this->map(function ($cartItem) use ($userGroups) {
-            $regularPrice = $cartItem->product->price;
-            $productInGroup = $this->findProductInGroups($cartItem->product_id, $userGroups);
+        $discountedProducts = [];
+        $products = [];
+        $totalDiscount = 0;
+        $carts = $this->resource['carts'];
+        $userProductGroups = $this->resource['userProductGroups'];
+        foreach ($carts as $cart) {
+            foreach ($cart->product as $product) {
+                $groupItem = $userProductGroups->productGroupItems
+                    ->firstWhere('product_id', $product->id);
 
-            // If the product is in a discount group, calculate the discounted price
-            if ($productInGroup) {
-                $discountPercentage = $productInGroup['discount'];
-                $discountedPrice = $regularPrice - ($regularPrice * ($discountPercentage / 100));
-            } else {
-                $discountedPrice = $regularPrice;
+                if ($groupItem) {
+                    $quantityInGroup = $groupItem->count;
+                    $quantityInCart = $product->cartItems->sum('quantity');
+                    $discountQuantity = min($quantityInGroup, $quantityInCart);
+
+                    $discount = $groupItem->group->discount;
+                    $discountAmount = $product->price * $discount / 100 * $discountQuantity;
+                    $totalDiscount += $discountAmount;
+
+                    $discountedProducts[] = [
+                        'product_id' => $product->id,
+                        'discounted_quantity' => $discountQuantity,
+                        'discount' => $discountAmount,
+                    ];
+                }
+                $products[] = [
+                    'product_id' => $product->id,
+                    'title' => $product->title,
+                    'price' => $product->price
+                ];
             }
+        }
 
-            return [
-                'product_id' => $cartItem->product_id,
-                'quantity' => $cartItem->quantity,
-                'price' => $discountedPrice
-            ];
-        });
-
-
-        return ['products' => $products, 'discount' => $this->calculateTotalDiscount($userGroups)];
+        return [
+            'data' => [
+                'products' => $products,
+                'discount' => $totalDiscount,
+                'discounted_products' => $discountedProducts,
+            ],
+        ];
     }
 
-    // Calculate the total discount based on the products in the cart and user's product groups
 
-    private function calculateTotalDiscount($userGroups): float
+    /**
+     * Calculate the discounted items and total discount.
+     *
+     * @return array
+     */
+    protected function calculateDiscountedItems()
     {
         $totalDiscount = 0;
+        $groupedCartItems = $this->groupByProduct();
 
-        // Iterate over each cart item
-        foreach ($this->cartItems as $cartItem) {
-            // Check if the cart item is in any of the user's product groups
-            foreach ($userGroups as $group) {
-                foreach ($group->productGroupItems as $groupItem) {
-                    if ($groupItem->product_id === $cartItem->product_id) {
-                        // Calculate discount based on the lower quantity between cart and group
-                        $applicableQuantity = min($cartItem->quantity, $groupItem->quantity);
-                        // Calculate the discount amount for this product
-                        $discountAmount = $applicableQuantity * $cartItem->product->price * ($group->discount / 100);
-                        $totalDiscount += $discountAmount;
-                        break 2; // Break out of both inner loops once the discount is found
-                    }
+        foreach ($this->user->productGroups as $group) {
+            foreach ($group->productGroupItems as $groupItem) {
+                $productId = $groupItem->product_id;
+                $discountPerProduct = $group->discount; // Assuming discount is a fixed amount per product
+
+                if (isset($groupedCartItems[$productId])) {
+                    $quantityInCart = $groupedCartItems[$productId];
+                    $quantityForDiscount = min($quantityInCart, $groupItem->quantity);
+                    $totalDiscount += $quantityForDiscount * $discountPerProduct;
                 }
             }
         }
 
-        return $totalDiscount;
+        return [
+            'totalDiscount' => $totalDiscount,
+        ];
     }
-    // Find if a product is in any user's product groups and return discount info
 
-    private function findProductInGroups($productId, $userGroups): ?array
+    /**
+     * Group cart items by product ID.
+     *
+     * @return array
+     */
+    protected function groupByProduct()
     {
-        foreach ($userGroups as $group) {
-            foreach ($group->productGroupItems as $item) {
-                if ($item->product_id == $productId) {
-                    return ['discount' => $group->discount]; // Discount is a percentage
-                }
+        $grouped = [];
+        foreach ($this->cartItems as $item) {
+            $productId = $item->product_id;
+            if (!isset($grouped[$productId])) {
+                $grouped[$productId] = 0;
             }
+            $grouped[$productId] += $item->quantity;
         }
-        return null;
+        return $grouped;
     }
 }
