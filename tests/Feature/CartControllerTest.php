@@ -173,7 +173,7 @@ class CartControllerTest extends TestCase
         $response = $this->actingAs($user)->get('/api/getUserCart');
 
         // Calculate the expected total discount
-        $expectedDiscount = 2 * 10 + 2 * 15;
+        $expectedDiscount = 2 * 10 * ($userProductGroup->discount /100) + 2 * 15 * ($userProductGroup->discount /100);
 
         $response->assertJson([
             'data' => [

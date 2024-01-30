@@ -11,19 +11,13 @@ class Product extends Model
     use HasFactory;
 
     protected $fillable = ['user_id', 'title', 'price'];
+    protected $casts = [
+        'price' => 'double',  // or use 'double' if you prefer
+    ];
 
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    public function groupItems(): HasMany
-    {
-        return $this->hasMany(ProductGroupItem::class);
-    }
-
-    public function cartItems(): HasMany
-    {
-        return $this->hasMany(Cart::class);
-    }
 }

@@ -8,6 +8,7 @@ use App\Http\Requests\RemoveProductFromCartRequest;
 use App\Http\Requests\SetCartProductQuantityRequest;
 use App\Http\Resources\ApiResponseResource;
 use App\Http\Resources\CartResource;
+use App\Http\Resources\UserCartResource;
 use App\Models\Cart;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -24,10 +25,14 @@ class CartController extends Controller
     public function addToCart(AddProductToCartRequest $request): ApiResponseResource
     {
         // Add the specified product to the user's cart with a default quantity of 1
-        auth()->user()->carts()->create([
+        $cartItem = auth()->user()->carts()->firstOrCreate([
             'product_id' => $request->product_id,
-            'quantity' => 1,
+        ], [
+            'quantity' => 0
         ]);
+
+        $cartItem->increment('quantity');
+        $cartItem->save();
 
         // Return a success response
         return new ApiResponseResource([
@@ -83,42 +88,8 @@ class CartController extends Controller
      */
     public function getUserCart(Request $request)
     {
-
         $user = $request->user();
-
-
-        dd($this->areAllCartProductsInUserProductGroups($user));
-        // Load the user's carts and the associated products for each cart item.
-        $carts = $user->carts()->with('product')->get();
-
-
-        foreach ($carts as $cart) {
-
-        }
-
-
-        // Load the user product groups and their related items.
-        $userProductGroups = $user->userProductGroups()->with('productGroupItems.product')->get();
-
-        return new CartResource(['carts' => $carts, 'userProductGroups' => $userProductGroups]);
-
-
-//        return response()->json(['error' => 'Cart not found'], 404);
-    }
-
-
-    public function areAllCartProductsInUserProductGroups(User $user)
-    {
-        // Fetch product IDs in the user's cart
-        $cartProductIds = $user->carts()->with('product')->get()
-            ->pluck('product.id')->unique();
-
-        // Fetch product IDs in the user's product groups
-        $groupProductIds = $user->productGroupItems()->with('product')->get()
-            ->pluck('product.id')->unique();
-
-        // Check if all cart products are in the product groups
-        return $cartProductIds->diff($groupProductIds)->isEmpty();
+        return new UserCartResource($user);
     }
 
 
